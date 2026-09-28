@@ -21,7 +21,7 @@ async function syncNow(){
     let hasLocal=meaningful(db);
     if(!syncReady){
       syncReady=true;
-      if(!hasLocal&&!syncMeta.pending&&remote.revision){
+      if(!hasLocal&&!syncMeta.pending&&!syncMeta.revision&&remote.revision){
         db=normalizeData(remote.data);
         localStorage.setItem(KEY,JSON.stringify(db));syncMeta={revision:remote.revision,pending:false};localStorage.setItem(SYNC_META,JSON.stringify(syncMeta));
         setSyncState('Restored from cloud.');render();return;
@@ -39,7 +39,7 @@ async function syncNow(){
       setSyncState('Cloud copy changed. Your device stays unchanged. Export a backup.');return;
     }
     if(!syncMeta.pending){setSyncState(hasLocal?'Cloud backup up to date.':'No data to back up yet.');return}
-    if(!meaningful(db)){syncMeta.pending=false;localStorage.setItem(SYNC_META,JSON.stringify(syncMeta));setSyncState('No data to back up yet.');return}
+    // A deletion is a real change: sync an empty snapshot so the old cloud day cannot come back.
     let snapshot=JSON.stringify(db),payload={baseRevision:syncMeta.revision,data:JSON.parse(snapshot)};
     let put=await fetch(SYNC_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(put.status===409){setSyncState('Cloud changed elsewhere. Your device stays unchanged. Export a backup before merging.');return}
